@@ -1,42 +1,51 @@
-// vertexShader.glsl
-
 precision highp float;
 
 uniform float uTime; // Time uniform for animation
 uniform float uR; // Radius of the larger sphere
-uniform float uSmallSphereRadius; // Radius of the smaller sphere where particles spawn
-varying vec3 vColor; // Varying color to pass to the fragment shader
+uniform float uSmallSphereRadius; // Radius of the smaller sphere where particles respawn
+uniform float uCenterSphereRadius; // Radius of the center sphere
 
-// Function to create a pseudo-random velocity based on position
+attribute vec3 velocity; // Velocity attribute from JavaScript
+varying vec3 vColor; // Varying color to pass to the fragment shader
+varying vec3 vVelocity;
+varying vec3 vPosition;
+
+// Function to create a pseudo-random velocity based on the position
 vec3 randomVelocity(vec3 pos) {
     return normalize(vec3(
         fract(sin(dot(pos, vec3(12.9898, 78.233, 45.164))) * 43758.5453),
         fract(sin(dot(pos, vec3(93.9898, 67.234, 76.164))) * 24653.5453),
         fract(sin(dot(pos, vec3(45.9898, 23.233, 89.164))) * 13247.5453)
-    )) / 1.0; // Reduce the divisor to speed up the particles
+    )) * 2.0; // Adjust the magnitude for desired speed
 }
 
 void main() {
     vec3 pos = position; // Get initial position of the vertex
-    vec3 velocity = randomVelocity(pos); // Calculate velocity based on position
+    vec3 vel = velocity; // Get initial velocity
 
-    // Calculate new position based on velocity and time
-    pos += velocity * uTime;
+    // Update position based on velocity and time
+    pos += vel * uTime;
 
     // Reflect off the boundary of the larger sphere
     if (length(pos) > uR) {
-        // Reflect the direction and slightly reduce the length to avoid exact boundary placement
-        vec3 normal = normalize(pos);
-        pos = reflect(pos, normal);
-        pos = normalize(pos) * (uR - 0.01);
+        // Reset position to the smaller sphere and assign a new random velocity
+        pos = normalize(pos) * uSmallSphereRadius;
+        vel = randomVelocity(pos);
     }
 
-    // Pass color to the fragment shader
+    // Reflect off the center sphere
+    if (length(pos) < uCenterSphereRadius) {
+        pos = normalize(pos) * uCenterSphereRadius;
+    }
+
+    // Pass the updated velocity to the next frame
     vColor = color;
+    vVelocity = vel;
+    vPosition = pos;
 
     // Set the updated position in the scene
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 
     // Set the size of each point
-    gl_PointSize = 3.0;
+    gl_PointSize = 5.0;
 }
