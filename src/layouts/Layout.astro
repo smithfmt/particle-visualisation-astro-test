@@ -1,4 +1,6 @@
 ---
+import "../index.css";
+
 interface Props {
 	title: string;
 }
@@ -16,7 +18,7 @@ const { title } = Astro.props;
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 	</head>
-	<body>
+	<body style={{height:"100%"}}>
 		<slot />
 	</body>
 </html>
@@ -34,7 +36,10 @@ const { title } = Astro.props;
 	}
 	html {
 		font-family: system-ui, sans-serif;
-		background: #13151a;
+		height:100%;
+	}
+	body: {
+		height: 100%;
 	}
 	code {
 		font-family:
