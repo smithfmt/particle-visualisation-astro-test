@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 import colors from "tailwindcss/colors";
-import { transform } from "typescript";
 export default {
 	content: [
 		"./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}",
