@@ -209,7 +209,7 @@ const NeuralNetwork: React.FC = () => {
                         count={colors.length / 3}
                         array={colors}
                         itemSize={3}
-                    />
+                    />a
                 </bufferGeometry>
                 <shaderMaterial
                     vertexShader={vertexShader}
