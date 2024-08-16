@@ -2,6 +2,8 @@
 
 uniform float uTime;
 uniform float uSeed;
+uniform vec3 mouseDirection;
+uniform float forceDistanceThreshold; 
 
 vec4 mod289(vec4 x)
 {
@@ -227,6 +229,15 @@ void main() {
     float displacement = noise / 10.0;
     vec4 newPosition = cubePos4d * displacement;
 
+    float dist = length(pos - mouseDirection);
+    
+    float forceStrength = 0.5;
+    if (dist < forceDistanceThreshold) {
+        float force = max(1.0-(dist/forceDistanceThreshold), 1.0 - (dist / forceDistanceThreshold));
+        vec3 forceDirection = normalize(mouseDirection - cubePos);
+        cubePos += forceDirection * force * forceStrength; 
+    }
+    
     gl_Position = projectionMatrix * modelViewMatrix * vec4(cubePos, 1.0);
     gl_PointSize = 3.0;
 }

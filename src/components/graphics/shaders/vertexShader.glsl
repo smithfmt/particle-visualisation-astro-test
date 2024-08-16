@@ -38,14 +38,14 @@ void main() {
     vVelocity = vel;
     vPosition = pos;
 
-    // float dist = length(pos - mouseDirection);
+    float dist = length(pos - mouseDirection);
     
-    // // Apply force only if the particle is within the threshold distance
-    // if (dist < forceDistanceThreshold) {
-    //     float force = max(0.0, 1.0 - (dist / forceDistanceThreshold)); // Example force function
-    //     vec3 forceDirection = normalize(mouseDirection - pos);
-    //     pos += forceDirection * force * 10.0; // Adjust strength with a scalar
-    // }
+    // Apply force only if the particle is within the threshold distance
+    if (dist < forceDistanceThreshold) {
+        float force = max(0.0, 1.0 - (dist / forceDistanceThreshold)); // Example force function
+        vec3 forceDirection = normalize(mouseDirection - pos);
+        pos += forceDirection * force * 10.0; // Adjust strength with a scalar
+    }
 
     vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
     vec4 viewPosition = viewMatrix * modelPosition;
