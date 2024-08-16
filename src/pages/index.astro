@@ -1,11 +1,11 @@
 ---
 import "../index.css";
 import Layout from '../layouts/Layout.astro';
-import Graphic from '../components/graphics/Graphic';
+import ParticleMotion from "../components/particle-motion/ParticleMotion";
 ---
 
 <Layout title="ThreeJS Astro">
 	<main style={{height:"100%",backgroundColor:"#262626"}} class="bg-neutral-800 h-full">
-		<Graphic client:load />
+		<ParticleMotion client:load />
 	</main>
 </Layout>

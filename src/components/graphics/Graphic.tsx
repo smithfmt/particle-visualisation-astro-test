@@ -1,7 +1,7 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { AdditiveBlending, Vector3, Group, BufferGeometry, BufferAttribute, Color, ShaderMaterial } from 'three';
+import { AdditiveBlending, Vector3, Group, BufferGeometry, BufferAttribute, Color, ShaderMaterial, Vector2 } from 'three';
 
 import fragmentShader from './shaders/fragmentShader.glsl';
 import vertexShader from './shaders/vertexShader.glsl';
@@ -32,6 +32,17 @@ const NeuralNetwork: React.FC = () => {
 
     const baseParticleColor = new Color(0x3de0c2);
 
+    const mouseDirection = new Vector3(-150,-150,-150);
+
+    const uniforms = {
+        uTime: { value: 0 },
+        uR: { value: r },
+        uSmallSphereRadius: { value: smallSphereRadius },
+        uCenterSphereRadius: { value: centerSphereRadius },
+        mouseDirection: { value: mouseDirection },
+        forceDistanceThreshold: { value: 10.0 },
+    };
+
     useEffect(() => {
         for (let i = 0; i < maxParticleCount; i++) {
             const theta = Math.random() * 2 * Math.PI;
@@ -57,7 +68,7 @@ const NeuralNetwork: React.FC = () => {
                 -1 + Math.random() * 2,
                 -1 + Math.random() * 2,
                 -1 + Math.random() * 2
-            ).normalize().multiplyScalar(2); // Adjust scalar for desired speed
+            ).normalize().multiplyScalar(5); // Adjust scalar for desired speed
 
             particleVelocities[i * 3] = velocity.x;
             particleVelocities[i * 3 + 1] = velocity.y;
@@ -71,10 +82,20 @@ const NeuralNetwork: React.FC = () => {
         }
     }, [maxParticleCount, particlePositions, particleColors, particleVelocities, baseParticleColor, smallSphereRadius]);
 
-    useFrame(({ clock }) => {
+    useFrame(({ clock, pointer, camera }) => {
         if (shaderMaterialRef.current) {
             shaderMaterialRef.current.uniforms.uTime.value = clock.getElapsedTime();
-        }
+            const vector = new Vector3(pointer.x, pointer.y, 0.5); // z = 0.5 is the midpoint
+            
+            // Unproject the vector from NDC to world space
+            vector.unproject(camera);
+
+            // Calculate the direction vector from the camera
+            const direction = vector.sub(camera.position).normalize();
+            // You can use this direction vector in your shader or for other calculations
+            // For example, pass it to the shader uniform if needed
+            shaderMaterialRef.current.uniforms.mouseDirection.value.set(direction.x, direction.y, direction.z);
+        };
     });
 
     return (
@@ -88,12 +109,7 @@ const NeuralNetwork: React.FC = () => {
                     fragmentShader={fragmentShader}
                     blending={AdditiveBlending}
                     transparent={true}
-                    uniforms={{
-                        uTime: { value: 0 },
-                        uR: { value: r },
-                        uSmallSphereRadius: { value: smallSphereRadius },
-                        uCenterSphereRadius: { value: centerSphereRadius },
-                    }}
+                    uniforms={uniforms}
                 />
             </points>
             {/* <lineSegments>
