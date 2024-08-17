@@ -2,7 +2,7 @@
 
 uniform float uTime;
 uniform float uSeed;
-uniform vec3 mouseDirection;
+uniform vec3 cameraDirection;
 uniform float forceDistanceThreshold; 
 
 vec4 mod289(vec4 x)
@@ -221,23 +221,33 @@ void main() {
     vec3 randomOffsetVec = vec3(randomOffset(uSeed, pos), randomOffset(uSeed, pos + vec3(1.0, 0.0, 0.0)), randomOffset(uSeed, pos + vec3(0.0, 1.0, 0.0))) * offsetFactor;
 
     // Interpolate between the sphere position and the cube position
-    vec3 cubePos = mix(pos, targetCubePos, scaledTimeline);
+    pos = mix(pos, targetCubePos, scaledTimeline);
 
-    // Add Noise with random offset
-    vec4 cubePos4d = vec4(cubePos + randomOffsetVec, 1.0);
-    float noise = 0.1 * pnoise(cubePos4d * 0.1 + uTime * 0.05, vec4(10.0));
-    float displacement = noise / 10.0;
-    vec4 newPosition = cubePos4d * displacement;
+    // // Add Noise with random offset
+    // vec4 cubePos4d = vec4(cubePos + randomOffsetVec, 1.0);
+    // float noise = 0.1 * pnoise(cubePos4d * 0.1 + uTime * 0.05, vec4(10.0));
+    // float displacement = noise / 10.0;
+    // vec4 newPosition = cubePos4d * displacement;
 
-    float dist = length(pos - mouseDirection);
-    
-    float forceStrength = 0.5;
+    // vec4 mouseDirection4d = vec4(mouseDirection, 1.0);
+
+    float dist = length(pos - cameraDirection);
+
+    float forceStrength = 0.2;
     if (dist < forceDistanceThreshold) {
-        float force = max(1.0-(dist/forceDistanceThreshold), 1.0 - (dist / forceDistanceThreshold));
-        vec3 forceDirection = normalize(mouseDirection - cubePos);
-        cubePos += forceDirection * force * forceStrength; 
+        float force = max(1.0 - (dist / forceDistanceThreshold), 1.0 - (dist / forceDistanceThreshold));
+
+        // Calculate the force direction perpendicular to mouseDirection
+        vec3 forceDirection = normalize(cross(cameraDirection, vec3(0.0, 1.0, 0.0))); // Assuming Y-axis as an arbitrary axis
+        
+        // If the cross product results in a near-zero vector, use another axis (e.g., X-axis)
+        if (length(forceDirection) < 0.001) {
+            forceDirection = normalize(cross(cameraDirection, vec3(1.0, 0.0, 0.0)));
+        }
+        
+        pos += forceDirection * force * forceStrength;
     }
     
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(cubePos, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
     gl_PointSize = 3.0;
 }

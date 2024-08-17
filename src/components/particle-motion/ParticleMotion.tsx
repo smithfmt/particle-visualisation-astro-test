@@ -12,14 +12,14 @@ const generateSeed = (index:number, count:number) => {
     return Math.sin(index) * count;
 }
 
-const CustomGeometryParticles = () => {
+const CustomGeometryParticles = ({ trackPointer } : { trackPointer: boolean}) => {
     const count = 10000;
     const radius = 10.0;
+    const color = new THREE.Color(0.34, 0.53, 0.96)
     const particleSpeed = 1; 
 
     const [particlePositions, setParticlePositions] = useState(getSpherePositions(count, radius));
     const randomParticlePositions = getRandomPositions(count, 2.0);
-
 
     const points = useRef<THREE.Points>(null!);
     const shaderMaterialRef = useRef<THREE.ShaderMaterial>(null);
@@ -32,44 +32,54 @@ const CustomGeometryParticles = () => {
         return arr;
       }, [count]);
     
-      const mouseDirection = new THREE.Vector3(-150,-150,-150);
+      const cameraDirection = new THREE.Vector3(0.5,0.5,0.5);
 
       const uniforms = useMemo(() => ({
         uRadius: { value: radius },
         uTime: { value: 0.0 },
-        uSeed: { value: seeds },
         uSizeMin: { value: 1.0 },
         uSizeMax: { value: 5.0 }, 
-        mouseDirection: { value: mouseDirection },
-        forceDistanceThreshold: { value: 0.5 },
+        uColor: { value: color },
+        cameraDirection: { value: cameraDirection },
+        mousePosition: { value: new THREE.Vector3(-150,-150,-150) },
+        forceDistanceThreshold: { value: 0.1 },
       }), [radius, seeds]);
 
-    useFrame(({ clock, pointer, camera }) => {
+    useFrame(({ clock, pointer, camera, }) => {
         const elapsedTime = clock.elapsedTime;
         uniforms.uTime.value = elapsedTime;
-
         if (shaderMaterialRef.current) {
-            const vector = new THREE.Vector3(pointer.x, pointer.y, 0.5); // z = 0.5 is the midpoint
-            
-            // Unproject the vector from NDC to world space
-            vector.unproject(camera);
+            if (trackPointer) {
+                // Convert the pointer's NDC position (x, y) into a 3D point on the screen plane
+                const mousePosition = new THREE.Vector3(pointer.x, pointer.y, 0.5); // z = 0.5 positions on screen plane
+                mousePosition.unproject(camera); // Convert from NDC to world space
+                
+                // Get the camera's viewing direction (perpendicular to the screen plane)
+                const cameraDirection = new THREE.Vector3();
+                camera.getWorldDirection(cameraDirection).normalize(); // Camera's view direction
 
-            // Calculate the direction vector from the camera
-            const direction = vector.sub(camera.position).normalize();
-            // You can use this direction vector in your shader or for other calculations
-            // For example, pass it to the shader uniform if needed
-            const distance = new THREE.Vector3(...points.current.position).sub(mouseDirection);
-            if (distance.length()<0.6) {
-                console.log("I AM CLOSE")
+                // Set these values as uniforms
+                shaderMaterialRef.current.uniforms.cameraDirection.value.set(
+                    cameraDirection.x,
+                    cameraDirection.y,
+                    cameraDirection.z
+                );  
+                shaderMaterialRef.current.uniforms.mousePosition.value.set(
+                    mousePosition.x,
+                    mousePosition.y,
+                    mousePosition.z
+                );
+            } else {
+                shaderMaterialRef.current.uniforms.cameraDirection.value.set(-150, -150, -150);
+                shaderMaterialRef.current.uniforms.mousePosition.value.set(-150, -150, -150);
             }
-            shaderMaterialRef.current.uniforms.mouseDirection.value.set(direction.x, direction.y, direction.z);
         }
     });
 
 
     return (
-        <group>
-        <points ref={points}>
+        <group >
+        {/* <points ref={points}>
             <bufferGeometry>
                 <bufferAttribute
                     attach="attributes-position"
@@ -86,7 +96,7 @@ const CustomGeometryParticles = () => {
                 vertexShader={vertexShader}
                 uniforms={uniforms}
             />
-        </points>
+        </points> */}
         <points ref={points}>
         <bufferGeometry>
             <bufferAttribute
@@ -95,8 +105,15 @@ const CustomGeometryParticles = () => {
                 array={randomParticlePositions}
                 itemSize={3}
             />
+             <bufferAttribute
+                attach="attributes-aSeed"
+                count={count}
+                array={seeds}
+                itemSize={1}
+            />
         </bufferGeometry>
         <shaderMaterial
+            ref={shaderMaterialRef}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
             fragmentShader={fragmentShader}
@@ -110,10 +127,11 @@ const CustomGeometryParticles = () => {
 };
 
 const Scene = () => {
+    const [trackPointer, setTrackPointer] = useState(false);
     return (
-        <Canvas camera={{ position: [0.5, 0.5, 0.5] }}>
+        <Canvas camera={{ position: [0.5, 0.5, 0.5] }} onPointerLeave={() => setTrackPointer(false)} onPointerEnter={() => setTrackPointer(true)}>
             <ambientLight intensity={0.5} />
-            <CustomGeometryParticles />
+            <CustomGeometryParticles trackPointer={trackPointer}/>
             <OrbitControls />
         </Canvas>
     );
