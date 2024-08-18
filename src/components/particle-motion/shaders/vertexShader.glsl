@@ -1,9 +1,15 @@
 
-
+uniform float uRadius;
 uniform float uTime;
-uniform float uSeed;
+uniform float uSizeMin; 
+uniform float uSizeMax; 
 uniform vec3 cameraDirection;
+uniform vec3 mousePosition;
 uniform float forceDistanceThreshold; 
+uniform float forceStrength;
+uniform vec3 uColor;
+
+attribute float aSeed;
 
 vec4 mod289(vec4 x)
 {
@@ -158,20 +164,20 @@ float pnoise(vec4 P, vec4 rep)
   return 2.2 * n_xyzw;
 }
 
-vec3 sphereToCube(vec3 p) {
+vec3 algorithm1(vec3 p) {
     // Compute the squared components of the input vector
     float x2 = p.x * p.x;
     float y2 = p.y * p.y;
     float z2 = p.z * p.z;
     
     // Calculate the projection onto the cube's faces
-    vec3 cubePos = vec3(
+    vec3 newPos = vec3(
         p.x * sqrt(1.0 - (y2 + z2) / 2.0 + (y2 * z2) / 3.0),
         p.y * sqrt(1.0 - (x2 + z2) / 2.0 + (x2 * z2) / 3.0),
         p.z * sqrt(1.0 - (x2 + y2) / 2.0 + (x2 * y2) / 3.0)
     );
 
-    return cubePos;
+    return newPos;
 }
 
 float nonLinearTimeline(float time, float minSpeed, float maxSpeed, float cycleDuration, float edgeSoftness) {
@@ -189,39 +195,44 @@ float nonLinearTimeline(float time, float minSpeed, float maxSpeed, float cycleD
     return minSpeed + (maxSpeed - minSpeed) * normalizedSpeed * softFactor;
 }
 
+float randomInRange(float seed, float x, float y) {
+  float pseudoRandom = fract(sin(seed * 12.9898) * 43758.5453);
+  return x + (y - x) * pseudoRandom;
+}
+
 float randomOffset(float seed, vec3 pos) {
     // Simplex noise or random function to generate a random offset
     return fract(sin(dot(pos, vec3(seed, seed * 1.0, seed * 2.0))) * 43758.5453);
 }
 
+out vec3 vColor;
+out float vStrength;
+
 void main() {
-    // Define min and max values for the timeline
-    float minTimelineValue = -20.0; // Minimum value of the timeline range
-    float maxTimelineValue = 0.0; // Maximum value of the timeline range
-    
-    // Define parameters for the non-linear timeline
-    float minSpeed = 0.5;       // Minimum speed
-    float maxSpeed = 1.5;       // Maximum speed
-    float cycleDuration = 20.0; // Total length of one cycle
-    float edgeSoftness = 0.2;   // How much speed slows down towards the edges
 
-    // Apply the non-linear timeline function
+    vColor = uColor;
+
+    // Define the Timeline
+    float minTimelineValue = -20.0;
+    float maxTimelineValue = 0.0;
+    float minSpeed = 0.5;
+    float maxSpeed = 1.5;
+    float cycleDuration = 20.0;
+    float edgeSoftness = 0.2;
+
     float timeline = nonLinearTimeline(uTime, minSpeed, maxSpeed, cycleDuration, edgeSoftness);
-
-    // Scale the timeline to the desired range
     float scaledTimeline = minTimelineValue + (maxTimelineValue - minTimelineValue) * timeline;
 
     vec3 pos = normalize(position);
+    vec3 targetPos = algorithm1(pos);
 
-    // Convert the normalized sphere position to a cube position
-    vec3 targetCubePos = sphereToCube(pos);
+    // Apply random offset noise to the movement
+    float offsetIntensity = 0.1;
+    vec3 randomOffsetVec = vec3(randomOffset(aSeed, pos), randomOffset(aSeed, pos + vec3(1.0, 0.0, 0.0)), randomOffset(aSeed, pos + vec3(0.0, 1.0, 0.0))) * offsetIntensity;
 
-    // Apply random offset based on particle position and seed
-    float offsetFactor = 0.1; // Adjust the intensity of the random movement
-    vec3 randomOffsetVec = vec3(randomOffset(uSeed, pos), randomOffset(uSeed, pos + vec3(1.0, 0.0, 0.0)), randomOffset(uSeed, pos + vec3(0.0, 1.0, 0.0))) * offsetFactor;
+    // Move particle towards new position based on the frame in the timeline
+    pos = mix(pos, targetPos, scaledTimeline);
 
-    // Interpolate between the sphere position and the cube position
-    pos = mix(pos, targetCubePos, scaledTimeline);
 
     // // Add Noise with random offset
     // vec4 cubePos4d = vec4(cubePos + randomOffsetVec, 1.0);
@@ -231,23 +242,32 @@ void main() {
 
     // vec4 mouseDirection4d = vec4(mouseDirection, 1.0);
 
-    float dist = length(pos - cameraDirection);
 
-    float forceStrength = 0.2;
-    if (dist < forceDistanceThreshold) {
-        float force = max(1.0 - (dist / forceDistanceThreshold), 1.0 - (dist / forceDistanceThreshold));
+    // Add Force Based on Proximity to Mouse Position
+    vec3 lineToPoint = pos - mousePosition;
 
-        // Calculate the force direction perpendicular to mouseDirection
-        vec3 forceDirection = normalize(cross(cameraDirection, vec3(0.0, 1.0, 0.0))); // Assuming Y-axis as an arbitrary axis
-        
-        // If the cross product results in a near-zero vector, use another axis (e.g., X-axis)
-        if (length(forceDirection) < 0.001) {
-            forceDirection = normalize(cross(cameraDirection, vec3(1.0, 0.0, 0.0)));
-        }
-        
+    float t = dot(lineToPoint, cameraDirection);  
+    vec3 closestPointOnLine = mousePosition + t * cameraDirection;
+
+    float dist = length(pos - closestPointOnLine);
+
+    float forceDist = forceDistanceThreshold;
+    vStrength = 0.0;
+    if (dist < forceDist) {
+        float force = 1.0 - (dist / forceDist);
+        vec3 forceDirection = -normalize(pos - closestPointOnLine);
+        // Push towards the line from the mouse position to the center
         pos += forceDirection * force * forceStrength;
+        vStrength = force;
     }
     
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-    gl_PointSize = 3.0;
+    // Set New Position in space
+    vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
+    vec4 viewPosition = viewMatrix * modelPosition;
+    vec4 projectedPosition = projectionMatrix * viewPosition;
+
+    // Add some size variation
+    float size = randomInRange(aSeed,uSizeMax,uSizeMin);
+    gl_Position = projectedPosition;
+    gl_PointSize = size;
 }

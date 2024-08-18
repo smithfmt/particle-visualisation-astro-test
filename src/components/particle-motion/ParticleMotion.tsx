@@ -32,9 +32,23 @@ const CustomGeometryParticles = ({ trackPointer } : { trackPointer: boolean}) =>
         return arr;
       }, [count]);
     
-      const cameraDirection = new THREE.Vector3(0.5,0.5,0.5);
+    const cameraDirection = new THREE.Vector3(0.5,0.5,0.5);
 
-      const uniforms = useMemo(() => ({
+
+    // Create a Velocities Texture which stores a time stamp of the frame when the force is applied
+    const velocitiesAndTime = new Float32Array(count * 4 * 2);
+
+    for (let i = 0; i < velocitiesAndTime.length; i += 4) {
+        velocitiesAndTime[i] = 0.0;
+        velocitiesAndTime[i + 1] = 0.0;
+        velocitiesAndTime[i + 2] = 0.0;
+        velocitiesAndTime[i + 3] = 0.0;
+    }
+    const [usingTexture1, setUsingTexture1] = useState(true); // Ping-Pong between the two textures every frame
+    const velocityTexture1 = new THREE.DataTexture(velocitiesAndTime, count, 1, THREE.RGBAFormat, THREE.FloatType);
+    const velocityTexture2 = velocityTexture1.clone();
+
+    const uniforms = useMemo(() => ({
         uRadius: { value: radius },
         uTime: { value: 0.0 },
         uSizeMin: { value: 1.0 },
@@ -43,11 +57,23 @@ const CustomGeometryParticles = ({ trackPointer } : { trackPointer: boolean}) =>
         cameraDirection: { value: cameraDirection },
         mousePosition: { value: new THREE.Vector3(-150,-150,-150) },
         forceDistanceThreshold: { value: 0.1 },
-      }), [radius, seeds]);
+        forceStrength: { value: 0.02 },
+        uVelocityTexture: { value: velocityTexture1 },
+        uDecayRate: { value: 1.0 }
+
+    }), [radius, seeds]);
 
     useFrame(({ clock, pointer, camera, }) => {
+        
         const elapsedTime = clock.elapsedTime;
         uniforms.uTime.value = elapsedTime;
+
+        // Update the Velocity Texture
+        const currentVelocityTexture = usingTexture1 ? velocityTexture1 : velocityTexture2;
+        const nextVelocityTexture = usingTexture1 ? velocityTexture2 : velocityTexture1;
+
+        uniforms.uVelocityTexture.value = currentVelocityTexture
+
         if (shaderMaterialRef.current) {
             if (trackPointer) {
                 // Convert the pointer's NDC position (x, y) into a 3D point on the screen plane
@@ -58,7 +84,7 @@ const CustomGeometryParticles = ({ trackPointer } : { trackPointer: boolean}) =>
                 const cameraDirection = new THREE.Vector3();
                 camera.getWorldDirection(cameraDirection).normalize(); // Camera's view direction
 
-                // Set these values as uniforms
+                
                 shaderMaterialRef.current.uniforms.cameraDirection.value.set(
                     cameraDirection.x,
                     cameraDirection.y,
@@ -79,7 +105,7 @@ const CustomGeometryParticles = ({ trackPointer } : { trackPointer: boolean}) =>
 
     return (
         <group >
-        {/* <points ref={points}>
+        <points ref={points}>
             <bufferGeometry>
                 <bufferAttribute
                     attach="attributes-position"
@@ -96,7 +122,7 @@ const CustomGeometryParticles = ({ trackPointer } : { trackPointer: boolean}) =>
                 vertexShader={vertexShader}
                 uniforms={uniforms}
             />
-        </points> */}
+        </points>
         <points ref={points}>
         <bufferGeometry>
             <bufferAttribute
