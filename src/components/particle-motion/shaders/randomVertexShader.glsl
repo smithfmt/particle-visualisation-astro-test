@@ -13,6 +13,11 @@ uniform float uDecayRate;
 
 attribute float aSeed;
 
+// TRY MAPPING THE POINTS ONTO THE 2D Plane of the Screen
+// pos - camera direction * t, until the point is on the plane
+// check if it is close to mouse pos (2d)
+
+
 mat3 rotation3dY(float angle) {
   float s = sin(angle);
   float c = cos(angle);
@@ -38,7 +43,7 @@ void main() {
     float distanceFactor = pow(uRadius / 5.0 - distance(position, vec3(0.0)), 1.5);
     vec3 pos = position * rotation3dY(uTime * 0.3 * distanceFactor);
 
-    pos = position; // TEMP FOR TESTING
+    // pos = position; // TEMP FOR TESTING
 
     vec4 velocityAndTime = texture(uVelocityTexture, vec2(aSeed / 100.0, 0.0));
     vec3 velocity = velocityAndTime.rgb;
