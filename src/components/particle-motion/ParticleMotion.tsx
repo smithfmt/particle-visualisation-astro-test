@@ -16,7 +16,7 @@ type Props = {
     particleSpeed?: number,
 };
 
-const CustomGeometryParticles = ({ trackPointer, count=10000, radius=10.0, color=new THREE.Color(0.34, 0.53, 0.96), particleSpeed=1.0  } : Props) => {
+const CustomGeometryParticles = ({ trackPointer, count=1000000, radius=10.0, color=new THREE.Color(0.34, 0.53, 0.96), particleSpeed=1.0  } : Props) => {
     const [particlePositions, setParticlePositions] = useState(getSpherePositions(count, radius));
     const randomParticlePositions = getRandomPositions(count/2, 2.0);
     const points = useRef<THREE.Points>(null!);
@@ -110,30 +110,7 @@ const CustomGeometryParticles = ({ trackPointer, count=10000, radius=10.0, color
                 uniforms={uniforms}
             />
         </points>
-        <points ref={points}>
-        <bufferGeometry>
-            <bufferAttribute
-                attach="attributes-position"
-                count={randomParticlePositions.length / 3}
-                array={randomParticlePositions}
-                itemSize={3}
-            />
-             <bufferAttribute
-                attach="attributes-aSeed"
-                count={count}
-                array={seeds}
-                itemSize={1}
-            />
-        </bufferGeometry>
-        <shaderMaterial
-            ref={shaderMaterialRef}
-            blending={THREE.AdditiveBlending}
-            depthWrite={false}
-            fragmentShader={fragmentShader}
-            vertexShader={randomVertexShader}
-            uniforms={uniforms}
-        />
-        </points>
+      
         </group>
         
     );

@@ -68,50 +68,50 @@ void main() {
     vColor = uColor;
 
     // Define the Timeline
-    float minTimelineValue = -20.0;
-    float maxTimelineValue = 20.0;
-    float minSpeed = 0.5;
-    float maxSpeed = 1.5;
-    float cycleDuration = 20.0;
-    float edgeSoftness = 0.2;
-    float phases = 2.0;
+    // float minTimelineValue = -20.0;
+    // float maxTimelineValue = 20.0;
+    // float minSpeed = 0.5;
+    // float maxSpeed = 1.5;
+    // float cycleDuration = 20.0;
+    // float edgeSoftness = 0.2;
+    // float phases = 2.0;
 
-    float timeline = nonLinearTimeline(uTime, minSpeed, maxSpeed, cycleDuration, edgeSoftness);
-    float scaledTimeline = minTimelineValue + (maxTimelineValue - minTimelineValue) * timeline;
+    // float timeline = nonLinearTimeline(uTime, minSpeed, maxSpeed, cycleDuration, edgeSoftness);
+    // float scaledTimeline = minTimelineValue + (maxTimelineValue - minTimelineValue) * timeline;
 
-    vec3 pos = normalize(position);
-    vec3 targetPos = randomGeometryAlgorithm(pos);
+    // vec3 pos = normalize(position);
+    // vec3 targetPos = randomGeometryAlgorithm(pos);
     
 
     // Move particle towards new position based on the frame in the timeline
-    pos = mix(pos, targetPos, scaledTimeline);
-    // vec3 phase1 = aDoDeca;
-    // vec3 phase2 = aCube;
-    // vec3 phase3 = aSphere;
+    // pos = mix(pos, targetPos, scaledTimeline);
+    vec3 phase1 = aDoDeca;
+    vec3 phase2 = aCube;
+    vec3 phase3 = aSphere;
 
 
-    // vec3 initialPos = normalize(position);
-    // float phaseLength = 10.0;
-    // float phases = 3.0;
-    // float timeline = nonlinearPhase(mod(uTime,phaseLength), phaseLength);
-    // float phase = mod(floor(uTime/phaseLength),phases+1.0);
+    vec3 initialPos = normalize(position);
+    float phaseLength = 10.0;
+    float phases = 3.0;
+    float timeline = nonlinearPhase(mod(uTime,phaseLength), phaseLength);
+    float phase = mod(floor(uTime/phaseLength),phases+1.0);
 
-    // vec3 startPos = initialPos; // initial position
-    // vec3 targetPos = phase1; // first phase
-    // if (phase==1.0) {
-    //   startPos = phase1;
-    //   targetPos = phase2;
-    // }
-    // if (phase==2.0) {
-    //   startPos = phase2;
-    //   targetPos = phase3;
-    // }
-    // if (phase==3.0) {
-    //   startPos = phase3;
-    //   targetPos = initialPos;
-    // }
+    vec3 startPos = initialPos; // initial position
+    vec3 targetPos = phase1; // first phase
+    if (phase==1.0) {
+      startPos = phase1;
+      targetPos = phase2;
+    }
+    if (phase==2.0) {
+      startPos = phase2;
+      targetPos = phase3;
+    }
+    if (phase==3.0) {
+      startPos = phase3;
+      targetPos = initialPos;
+    }
 
-    // vec3 pos = mix(startPos,targetPos,timeline);
+    vec3 pos = mix(startPos,targetPos,timeline);
 
     // Add Force Based on Proximity to Mouse Position
     vec3 lineToPoint = pos - mousePosition;
